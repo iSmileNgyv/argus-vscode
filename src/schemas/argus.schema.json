@@ -1,0 +1,319 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ArgusOmni Test Suite",
+    "description": "Validation schema for ArgusOmni test definition files (.argus.yml)",
+    "type": "object",
+    "properties": {
+        "env": {
+            "type": "object",
+            "description": "Global environment variables",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "type": "object",
+            "description": "Test suite variables",
+            "additionalProperties": true
+        },
+        "tests": {
+            "type": "array",
+            "description": "List of test steps (each item is a single step, NOT nested)",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the test step"
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Step type (auto-detected if not specified)",
+                        "enum": [
+                            "REST",
+                            "GRPC",
+                            "FS",
+                            "SET",
+                            "TRANSFORM",
+                            "RESOLVE_PATH"
+                        ]
+                    },
+                    "continueOnError": {
+                        "type": "boolean",
+                        "description": "Continue test execution even if this step fails",
+                        "default": false
+                    },
+                    "rest": {
+                        "type": "object",
+                        "description": "REST API test configuration",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "Target URL (supports variable substitution)"
+                            },
+                            "method": {
+                                "type": "string",
+                                "description": "HTTP method",
+                                "enum": [
+                                    "GET",
+                                    "POST",
+                                    "PUT",
+                                    "DELETE",
+                                    "PATCH",
+                                    "HEAD",
+                                    "OPTIONS"
+                                ]
+                            },
+                            "headers": {
+                                "type": "object",
+                                "description": "HTTP headers",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            },
+                            "body": {
+                                "description": "Request body (JSON object, array, or string)",
+                                "oneOf": [
+                                    {
+                                        "type": "object"
+                                    },
+                                    {
+                                        "type": "array"
+                                    },
+                                    {
+                                        "type": "string"
+                                    }
+                                ]
+                            },
+                            "http2": {
+                                "type": "boolean",
+                                "description": "Use HTTP/2",
+                                "default": false
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Request timeout in milliseconds",
+                                "minimum": 0
+                            },
+                            "cookies": {
+                                "description": "Cookies (string or object)",
+                                "oneOf": [
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "object"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": [
+                            "url",
+                            "method"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "grpc": {
+                        "type": "object",
+                        "description": "gRPC test configuration",
+                        "properties": {
+                            "proto": {
+                                "type": "string",
+                                "description": "Path to .proto file or .pb descriptor set"
+                            },
+                            "host": {
+                                "type": "string",
+                                "description": "gRPC server host:port (e.g., localhost:5051)"
+                            },
+                            "service": {
+                                "type": "string",
+                                "description": "Service name (with or without package)"
+                            },
+                            "method": {
+                                "type": "string",
+                                "description": "Method name to call"
+                            },
+                            "request": {
+                                "type": "object",
+                                "description": "Request message as JSON object",
+                                "additionalProperties": true
+                            },
+                            "metadata": {
+                                "type": "object",
+                                "description": "gRPC metadata (headers)",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Call timeout in milliseconds",
+                                "minimum": 0
+                            }
+                        },
+                        "required": [
+                            "proto",
+                            "host",
+                            "service",
+                            "method"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "fs": {
+                        "type": "object",
+                        "description": "File system operations",
+                        "properties": {
+                            "exists": {
+                                "type": "string",
+                                "description": "Check if file/directory exists"
+                            },
+                            "notExists": {
+                                "type": "string",
+                                "description": "Check if file/directory does NOT exist"
+                            },
+                            "read": {
+                                "type": "string",
+                                "description": "Read file content"
+                            },
+                            "isDirectory": {
+                                "type": "string",
+                                "description": "Check if path is a directory"
+                            },
+                            "size": {
+                                "type": "string",
+                                "description": "Get file size"
+                            },
+                            "write": {
+                                "type": "object",
+                                "description": "Write content to file",
+                                "properties": {
+                                    "path": {
+                                        "type": "string"
+                                    },
+                                    "content": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "path",
+                                    "content"
+                                ]
+                            },
+                            "createDir": {
+                                "type": "string",
+                                "description": "Create directory"
+                            },
+                            "deleteDir": {
+                                "type": "string",
+                                "description": "Delete directory"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "set": {
+                        "type": "object",
+                        "description": "Set variables",
+                        "properties": {
+                            "variables": {
+                                "type": "object",
+                                "description": "Variables to set",
+                                "additionalProperties": true
+                            }
+                        },
+                        "required": [
+                            "variables"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "transform": {
+                        "type": "object",
+                        "description": "Transform data using JSONPath",
+                        "properties": {
+                            "source": {
+                                "type": "string",
+                                "description": "Source variable name"
+                            },
+                            "target": {
+                                "type": "string",
+                                "description": "Target variable name"
+                            },
+                            "jsonPath": {
+                                "type": "string",
+                                "description": "JSONPath expression"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "resolvePath": {
+                        "type": "object",
+                        "description": "Resolve file path",
+                        "properties": {
+                            "path": {
+                                "type": "string"
+                            },
+                            "target": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    },
+                    "extract": {
+                        "type": "object",
+                        "description": "Extract variables from response using JSONPath",
+                        "additionalProperties": {
+                            "type": "string",
+                            "description": "JSONPath expression (e.g., $.data.id)"
+                        }
+                    },
+                    "expect": {
+                        "type": "object",
+                        "description": "Assertions to validate response",
+                        "properties": {
+                            "status": {
+                                "type": "integer",
+                                "description": "Expected HTTP status code (REST only)"
+                            },
+                            "json": {
+                                "type": "object",
+                                "description": "Exact JSON field values",
+                                "additionalProperties": true
+                            },
+                            "jsonContains": {
+                                "type": "object",
+                                "description": "Check if JSON contains fields",
+                                "additionalProperties": true
+                            },
+                            "jsonNotContains": {
+                                "type": "object",
+                                "description": "Check if JSON does NOT contain fields",
+                                "additionalProperties": true
+                            },
+                            "fsExists": {
+                                "type": "string",
+                                "description": "Check if file exists"
+                            },
+                            "fsSize": {
+                                "type": "string",
+                                "description": "Check file size (format: path:size)"
+                            },
+                            "equals": {
+                                "type": "object",
+                                "description": "Check variable values",
+                                "additionalProperties": true
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "required": [
+        "tests"
+    ],
+    "additionalProperties": false
+}
