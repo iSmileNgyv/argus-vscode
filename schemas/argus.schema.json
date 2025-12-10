@@ -33,6 +33,7 @@
                             "REST",
                             "GRPC",
                             "FS",
+                            "BASH",
                             "SET",
                             "TRANSFORM",
                             "RESOLVE_PATH"
@@ -159,6 +160,53 @@
                         ],
                         "additionalProperties": false
                     },
+                    "bash": {
+                        "type": "object",
+                        "description": "Execute bash commands or scripts",
+                        "properties": {
+                            "command": {
+                                "type": "string",
+                                "description": "Inline bash command to execute (takes precedence over script)"
+                            },
+                            "script": {
+                                "type": "string",
+                                "description": "Path to bash script file to execute"
+                            },
+                            "workingDir": {
+                                "type": "string",
+                                "description": "Working directory for command execution"
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Timeout in milliseconds (default: 30000)",
+                                "minimum": 0,
+                                "default": 30000
+                            },
+                            "expectedExitCode": {
+                                "type": "integer",
+                                "description": "Expected exit code (default: 0)",
+                                "default": 0
+                            },
+                            "ignoreExitCode": {
+                                "type": "boolean",
+                                "description": "Ignore non-zero exit codes",
+                                "default": false
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "command"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "script"
+                                ]
+                            }
+                        ],
+                        "additionalProperties": false
+                    },
                     "fs": {
                         "type": "object",
                         "description": "File system operations",
@@ -259,10 +307,10 @@
                     },
                     "extract": {
                         "type": "object",
-                        "description": "Extract variables from response using JSONPath",
+                        "description": "Extract variables from response/output",
                         "additionalProperties": {
                             "type": "string",
-                            "description": "JSONPath expression (e.g., $.data.id)"
+                            "description": "Extraction pattern - JSONPath for REST/GRPC (e.g., $.data.id), or output pattern for BASH (e.g., 'line:0', 'last', 'all', regex)"
                         }
                     },
                     "expect": {
@@ -271,7 +319,7 @@
                         "properties": {
                             "status": {
                                 "type": "integer",
-                                "description": "Expected HTTP status code (REST only)"
+                                "description": "Expected HTTP status code (REST) or exit code (BASH)"
                             },
                             "json": {
                                 "type": "object",
