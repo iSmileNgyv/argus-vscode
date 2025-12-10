@@ -2,7 +2,7 @@
 
 All notable changes to ArgusOmni will be documented in this file.
 
-## [1.0.3] - 2025-12-10
+## [0.1.3] - 2025-12-10
 
 ### Added
 - **BASH Script Execution** - New test step type for running shell commands and scripts
