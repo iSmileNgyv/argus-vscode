@@ -72,6 +72,13 @@
                                     "type": "string"
                                 }
                             },
+                            "queryParams": {
+                                "type": "object",
+                                "description": "URL query parameters",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            },
                             "body": {
                                 "description": "Request body (JSON object, array, or string)",
                                 "oneOf": [
@@ -97,13 +104,19 @@
                                 "minimum": 0
                             },
                             "cookies": {
-                                "description": "Cookies (string or object)",
+                                "description": "Cookie management: 'auto' for automatic cookie store, or object with cookie key-value pairs",
                                 "oneOf": [
                                     {
-                                        "type": "string"
+                                        "type": "string",
+                                        "enum": [
+                                            "auto"
+                                        ]
                                     },
                                     {
-                                        "type": "object"
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        }
                                     }
                                 ]
                             }
@@ -307,10 +320,10 @@
                     },
                     "extract": {
                         "type": "object",
-                        "description": "Extract variables from response/output",
+                        "description": "Extract variables from response/output using JSONPath expressions",
                         "additionalProperties": {
                             "type": "string",
-                            "description": "Extraction pattern - JSONPath for REST/GRPC (e.g., $.data.id), or output pattern for BASH (e.g., 'line:0', 'last', 'all', regex)"
+                            "description": "JSONPath expression (e.g., $.data.id, $.users[0].name, $.items[*])"
                         }
                     },
                     "expect": {
@@ -323,12 +336,12 @@
                             },
                             "json": {
                                 "type": "object",
-                                "description": "Exact JSON field values",
+                                "description": "Exact JSON field values (uses JSONPath: $.field)",
                                 "additionalProperties": true
                             },
                             "jsonContains": {
                                 "type": "object",
-                                "description": "Check if JSON contains fields",
+                                "description": "Check if JSON contains fields (field existence check)",
                                 "additionalProperties": true
                             },
                             "jsonNotContains": {
@@ -336,17 +349,76 @@
                                 "description": "Check if JSON does NOT contain fields",
                                 "additionalProperties": true
                             },
+                            "jsonPath": {
+                                "type": "object",
+                                "description": "Advanced JSONPath assertions with filters and conditions",
+                                "additionalProperties": {
+                                    "type": "object",
+                                    "description": "Assertion configuration for JSONPath expression",
+                                    "properties": {
+                                        "exists": {
+                                            "type": "boolean",
+                                            "description": "Check if path returns results (non-empty)"
+                                        },
+                                        "isEmpty": {
+                                            "type": "boolean",
+                                            "description": "Check if path returns empty results"
+                                        },
+                                        "count": {
+                                            "type": "integer",
+                                            "description": "Exact count of results",
+                                            "minimum": 0
+                                        },
+                                        "minCount": {
+                                            "type": "integer",
+                                            "description": "Minimum count of results",
+                                            "minimum": 0
+                                        },
+                                        "maxCount": {
+                                            "type": "integer",
+                                            "description": "Maximum count of results",
+                                            "minimum": 0
+                                        },
+                                        "equals": {
+                                            "description": "Expected value (exact match)"
+                                        },
+                                        "contains": {
+                                            "description": "Check if result array contains this value"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "examples": [
+                                    {
+                                        "$.users[?(@.name == 'John')]": {
+                                            "exists": true,
+                                            "minCount": 1
+                                        }
+                                    },
+                                    {
+                                        "$.users[?(@.age > 18 && @.status == 'active')]": {
+                                            "exists": true,
+                                            "count": 5
+                                        }
+                                    },
+                                    {
+                                        "$.errors": {
+                                            "isEmpty": true
+                                        }
+                                    }
+                                ]
+                            },
                             "fsExists": {
                                 "type": "string",
-                                "description": "Check if file exists"
+                                "description": "Check if file exists at path"
                             },
                             "fsSize": {
                                 "type": "string",
-                                "description": "Check file size (format: path:size)"
+                                "description": "Check file size (format: path:expectedSize)"
                             },
                             "equals": {
                                 "type": "object",
-                                "description": "Check variable values",
+                                "description": "Check variable values (key: variable name, value: expected value)",
                                 "additionalProperties": true
                             }
                         },
