@@ -16,19 +16,55 @@
             "description": "Test suite variables",
             "additionalProperties": true
         },
+        "execution": {
+            "type": "object",
+            "description": "Execution configuration for parallel execution and advanced settings",
+            "properties": {
+                "parallel": {
+                    "type": "object",
+                    "description": "Parallel execution configuration",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Enable parallel test execution",
+                            "default": false
+                        },
+                        "threads": {
+                            "type": "integer",
+                            "description": "Number of parallel threads (default: CPU cores)",
+                            "minimum": 1
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "description": "Timeout per test in milliseconds",
+                            "minimum": 0
+                        },
+                        "failFast": {
+                            "type": "boolean",
+                            "description": "Stop execution on first failure",
+                            "default": false
+                        }
+                    }
+                }
+            }
+        },
         "tests": {
             "type": "array",
-            "description": "List of test steps (each item is a single step, NOT nested)",
+            "description": "List of test steps",
             "items": {
                 "type": "object",
                 "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique test identifier (for dependency tracking)"
+                    },
                     "name": {
                         "type": "string",
                         "description": "Name of the test step"
                     },
                     "type": {
                         "type": "string",
-                        "description": "Step type (auto-detected if not specified)",
+                        "description": "Step type",
                         "enum": [
                             "REST",
                             "GRPC",
@@ -36,13 +72,35 @@
                             "BASH",
                             "SET",
                             "TRANSFORM",
-                            "RESOLVE_PATH"
+                            "RESOLVE_PATH",
+                            "ASSERT",
+                            "WAIT",
+                            "LOOP",
+                            "IF",
+                            "MOCK"
                         ]
+                    },
+                    "dependsOn": {
+                        "type": "array",
+                        "description": "List of test IDs this test depends on (for parallel execution)",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "continueOnError": {
                         "type": "boolean",
                         "description": "Continue test execution even if this step fails",
                         "default": false
+                    },
+                    "maxRetries": {
+                        "type": "integer",
+                        "description": "Maximum number of retry attempts on failure",
+                        "minimum": 0
+                    },
+                    "retryInterval": {
+                        "type": "integer",
+                        "description": "Wait time between retries in milliseconds",
+                        "minimum": 0
                     },
                     "rest": {
                         "type": "object",
@@ -93,6 +151,21 @@
                                     }
                                 ]
                             },
+                            "multipart": {
+                                "type": "object",
+                                "description": "Multipart/form-data for file uploads and form fields",
+                                "additionalProperties": true
+                            },
+                            "arrayFormat": {
+                                "type": "string",
+                                "description": "Array format for multipart uploads",
+                                "enum": [
+                                    "brackets",
+                                    "indexed",
+                                    "same"
+                                ],
+                                "default": "brackets"
+                            },
                             "http2": {
                                 "type": "boolean",
                                 "description": "Use HTTP/2",
@@ -104,7 +177,7 @@
                                 "minimum": 0
                             },
                             "cookies": {
-                                "description": "Cookie management: 'auto' for automatic cookie store, or object with cookie key-value pairs",
+                                "description": "Cookie management",
                                 "oneOf": [
                                     {
                                         "type": "string",
@@ -124,8 +197,7 @@
                         "required": [
                             "url",
                             "method"
-                        ],
-                        "additionalProperties": false
+                        ]
                     },
                     "grpc": {
                         "type": "object",
@@ -137,11 +209,11 @@
                             },
                             "host": {
                                 "type": "string",
-                                "description": "gRPC server host:port (e.g., localhost:5051)"
+                                "description": "gRPC server host:port"
                             },
                             "service": {
                                 "type": "string",
-                                "description": "Service name (with or without package)"
+                                "description": "Service name"
                             },
                             "method": {
                                 "type": "string",
@@ -149,7 +221,7 @@
                             },
                             "request": {
                                 "type": "object",
-                                "description": "Request message as JSON object",
+                                "description": "Request message as JSON",
                                 "additionalProperties": true
                             },
                             "metadata": {
@@ -170,8 +242,7 @@
                             "host",
                             "service",
                             "method"
-                        ],
-                        "additionalProperties": false
+                        ]
                     },
                     "bash": {
                         "type": "object",
@@ -179,25 +250,25 @@
                         "properties": {
                             "command": {
                                 "type": "string",
-                                "description": "Inline bash command to execute (takes precedence over script)"
+                                "description": "Inline bash command"
                             },
                             "script": {
                                 "type": "string",
-                                "description": "Path to bash script file to execute"
+                                "description": "Path to bash script file"
                             },
                             "workingDir": {
                                 "type": "string",
-                                "description": "Working directory for command execution"
+                                "description": "Working directory"
                             },
                             "timeout": {
                                 "type": "integer",
-                                "description": "Timeout in milliseconds (default: 30000)",
+                                "description": "Timeout in milliseconds",
                                 "minimum": 0,
                                 "default": 30000
                             },
                             "expectedExitCode": {
                                 "type": "integer",
-                                "description": "Expected exit code (default: 0)",
+                                "description": "Expected exit code",
                                 "default": 0
                             },
                             "ignoreExitCode": {
@@ -217,36 +288,29 @@
                                     "script"
                                 ]
                             }
-                        ],
-                        "additionalProperties": false
+                        ]
                     },
                     "fs": {
                         "type": "object",
                         "description": "File system operations",
                         "properties": {
                             "exists": {
-                                "type": "string",
-                                "description": "Check if file/directory exists"
+                                "type": "string"
                             },
                             "notExists": {
-                                "type": "string",
-                                "description": "Check if file/directory does NOT exist"
+                                "type": "string"
                             },
                             "read": {
-                                "type": "string",
-                                "description": "Read file content"
+                                "type": "string"
                             },
                             "isDirectory": {
-                                "type": "string",
-                                "description": "Check if path is a directory"
+                                "type": "string"
                             },
                             "size": {
-                                "type": "string",
-                                "description": "Get file size"
+                                "type": "string"
                             },
                             "write": {
                                 "type": "object",
-                                "description": "Write content to file",
                                 "properties": {
                                     "path": {
                                         "type": "string"
@@ -254,22 +318,15 @@
                                     "content": {
                                         "type": "string"
                                     }
-                                },
-                                "required": [
-                                    "path",
-                                    "content"
-                                ]
+                                }
                             },
                             "createDir": {
-                                "type": "string",
-                                "description": "Create directory"
+                                "type": "string"
                             },
                             "deleteDir": {
-                                "type": "string",
-                                "description": "Delete directory"
+                                "type": "string"
                             }
-                        },
-                        "additionalProperties": false
+                        }
                     },
                     "set": {
                         "type": "object",
@@ -283,27 +340,332 @@
                         },
                         "required": [
                             "variables"
-                        ],
-                        "additionalProperties": false
+                        ]
+                    },
+                    "wait": {
+                        "type": "object",
+                        "description": "Wait/polling configuration",
+                        "properties": {
+                            "duration": {
+                                "type": "integer",
+                                "description": "Simple wait duration in milliseconds",
+                                "minimum": 0
+                            },
+                            "condition": {
+                                "type": "object",
+                                "description": "Polling condition",
+                                "properties": {
+                                    "variable": {
+                                        "type": "string",
+                                        "description": "Variable name to check"
+                                    },
+                                    "equals": {
+                                        "description": "Expected value"
+                                    },
+                                    "exists": {
+                                        "type": "boolean",
+                                        "description": "Check if variable exists"
+                                    },
+                                    "expression": {
+                                        "type": "string",
+                                        "description": "Simple expression (e.g., 'count > 5')"
+                                    },
+                                    "jsonPath": {
+                                        "type": "string",
+                                        "description": "JSONPath query"
+                                    }
+                                }
+                            },
+                            "maxRetries": {
+                                "type": "integer",
+                                "description": "Maximum polling attempts",
+                                "minimum": 1
+                            },
+                            "retryInterval": {
+                                "type": "integer",
+                                "description": "Wait between attempts (ms)",
+                                "minimum": 0
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Total timeout (ms)",
+                                "minimum": 0
+                            }
+                        }
+                    },
+                    "loop": {
+                        "type": "object",
+                        "description": "Loop/data-driven testing configuration",
+                        "properties": {
+                            "items": {
+                                "type": "array",
+                                "description": "Inline array of items to loop over"
+                            },
+                            "itemsFrom": {
+                                "type": "string",
+                                "description": "Variable name containing array"
+                            },
+                            "dataSource": {
+                                "type": "object",
+                                "description": "External data source (CSV/JSON)",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": [
+                                            "CSV",
+                                            "JSON"
+                                        ]
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "description": "Path to data file"
+                                    },
+                                    "path": {
+                                        "type": "string",
+                                        "description": "JSONPath for JSON files"
+                                    },
+                                    "headers": {
+                                        "type": "boolean",
+                                        "description": "CSV has headers"
+                                    }
+                                }
+                            },
+                            "range": {
+                                "type": "object",
+                                "description": "Numeric range",
+                                "properties": {
+                                    "start": {
+                                        "type": "integer"
+                                    },
+                                    "end": {
+                                        "type": "integer"
+                                    },
+                                    "step": {
+                                        "type": "integer",
+                                        "default": 1
+                                    }
+                                }
+                            },
+                            "variable": {
+                                "type": "string",
+                                "description": "Variable name for current item"
+                            },
+                            "indexVariable": {
+                                "type": "string",
+                                "description": "Variable name for current index"
+                            },
+                            "continueOnError": {
+                                "type": "boolean",
+                                "description": "Continue loop on iteration failure"
+                            },
+                            "steps": {
+                                "type": "array",
+                                "description": "Steps to execute for each iteration",
+                                "items": {
+                                    "$ref": "#/properties/tests/items"
+                                }
+                            }
+                        }
+                    },
+                    "ifConfig": {
+                        "type": "object",
+                        "description": "Conditional execution (IF/ELSE/ELSEIF)",
+                        "properties": {
+                            "condition": {
+                                "type": "string",
+                                "description": "Condition expression (e.g., 'status == \"active\"', 'age > 18 AND role == \"admin\"')"
+                            },
+                            "then": {
+                                "type": "array",
+                                "description": "Steps to execute if condition is true",
+                                "items": {
+                                    "$ref": "#/properties/tests/items"
+                                }
+                            },
+                            "elseIf": {
+                                "type": "array",
+                                "description": "Else-if branches",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "condition": {
+                                            "type": "string"
+                                        },
+                                        "then": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/properties/tests/items"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "elseSteps": {
+                                "type": "array",
+                                "description": "Steps to execute if all conditions are false",
+                                "items": {
+                                    "$ref": "#/properties/tests/items"
+                                }
+                            }
+                        }
+                    },
+                    "mock": {
+                        "type": "object",
+                        "description": "Mock server configuration (WireMock)",
+                        "properties": {
+                            "action": {
+                                "type": "string",
+                                "enum": [
+                                    "start",
+                                    "stop",
+                                    "stub",
+                                    "verify",
+                                    "reset"
+                                ],
+                                "description": "Mock server action"
+                            },
+                            "port": {
+                                "type": "integer",
+                                "description": "Server port (default: random)",
+                                "minimum": 1,
+                                "maximum": 65535
+                            },
+                            "serverId": {
+                                "type": "string",
+                                "description": "Server identifier for managing multiple servers"
+                            },
+                            "portVariable": {
+                                "type": "string",
+                                "description": "Variable to store server port"
+                            },
+                            "baseUrlVariable": {
+                                "type": "string",
+                                "description": "Variable to store server base URL"
+                            },
+                            "autoStart": {
+                                "type": "boolean",
+                                "description": "Auto-start server if not running",
+                                "default": true
+                            },
+                            "stub": {
+                                "type": "object",
+                                "description": "Stub configuration",
+                                "properties": {
+                                    "request": {
+                                        "type": "object",
+                                        "properties": {
+                                            "method": {
+                                                "type": "string",
+                                                "enum": [
+                                                    "GET",
+                                                    "POST",
+                                                    "PUT",
+                                                    "DELETE",
+                                                    "PATCH",
+                                                    "HEAD",
+                                                    "OPTIONS"
+                                                ]
+                                            },
+                                            "url": {
+                                                "type": "string"
+                                            },
+                                            "urlPath": {
+                                                "type": "string"
+                                            },
+                                            "urlPathPattern": {
+                                                "type": "string"
+                                            },
+                                            "queryParameters": {
+                                                "type": "object"
+                                            },
+                                            "headers": {
+                                                "type": "object"
+                                            },
+                                            "bodyPattern": {
+                                                "type": "string"
+                                            },
+                                            "bodyJson": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    },
+                                    "response": {
+                                        "type": "object",
+                                        "properties": {
+                                            "status": {
+                                                "type": "integer",
+                                                "minimum": 100,
+                                                "maximum": 599
+                                            },
+                                            "body": {
+                                                "type": "string"
+                                            },
+                                            "jsonBody": {
+                                                "type": "object"
+                                            },
+                                            "headers": {
+                                                "type": "object"
+                                            },
+                                            "fixedDelayMilliseconds": {
+                                                "type": "integer",
+                                                "minimum": 0
+                                            }
+                                        }
+                                    },
+                                    "priority": {
+                                        "type": "integer"
+                                    },
+                                    "scenarioName": {
+                                        "type": "string"
+                                    },
+                                    "requiredScenarioState": {
+                                        "type": "string"
+                                    },
+                                    "newScenarioState": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "verify": {
+                                "type": "object",
+                                "description": "Request verification",
+                                "properties": {
+                                    "request": {
+                                        "type": "object"
+                                    },
+                                    "count": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "countExpression": {
+                                        "type": "string",
+                                        "enum": [
+                                            "exactly",
+                                            "atLeast",
+                                            "atMost"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "required": [
+                            "action"
+                        ]
                     },
                     "transform": {
                         "type": "object",
-                        "description": "Transform data using JSONPath",
+                        "description": "Transform data",
                         "properties": {
                             "source": {
-                                "type": "string",
-                                "description": "Source variable name"
+                                "type": "string"
                             },
                             "target": {
-                                "type": "string",
-                                "description": "Target variable name"
+                                "type": "string"
                             },
                             "jsonPath": {
-                                "type": "string",
-                                "description": "JSONPath expression"
+                                "type": "string"
                             }
-                        },
-                        "additionalProperties": false
+                        }
                     },
                     "resolvePath": {
                         "type": "object",
@@ -315,125 +677,264 @@
                             "target": {
                                 "type": "string"
                             }
-                        },
-                        "additionalProperties": false
+                        }
                     },
                     "extract": {
                         "type": "object",
-                        "description": "Extract variables from response/output using JSONPath expressions",
+                        "description": "Extract variables using JSONPath",
                         "additionalProperties": {
-                            "type": "string",
-                            "description": "JSONPath expression (e.g., $.data.id, $.users[0].name, $.items[*])"
+                            "type": "string"
                         }
                     },
                     "expect": {
                         "type": "object",
-                        "description": "Assertions to validate response",
+                        "description": "Assertions",
                         "properties": {
                             "status": {
                                 "type": "integer",
-                                "description": "Expected HTTP status code (REST) or exit code (BASH)"
+                                "description": "Expected status code"
                             },
                             "json": {
                                 "type": "object",
-                                "description": "Exact JSON field values (uses JSONPath: $.field)",
-                                "additionalProperties": true
+                                "description": "Exact JSON values"
                             },
                             "jsonContains": {
                                 "type": "object",
-                                "description": "Check if JSON contains fields (field existence check)",
-                                "additionalProperties": true
+                                "description": "JSON contains fields"
                             },
                             "jsonNotContains": {
                                 "type": "object",
-                                "description": "Check if JSON does NOT contain fields",
-                                "additionalProperties": true
+                                "description": "JSON does not contain fields"
                             },
                             "jsonPath": {
                                 "type": "object",
-                                "description": "Advanced JSONPath assertions with filters and conditions",
+                                "description": "Advanced JSONPath assertions",
                                 "additionalProperties": {
                                     "type": "object",
-                                    "description": "Assertion configuration for JSONPath expression",
                                     "properties": {
                                         "exists": {
-                                            "type": "boolean",
-                                            "description": "Check if path returns results (non-empty)"
+                                            "type": "boolean"
                                         },
                                         "isEmpty": {
-                                            "type": "boolean",
-                                            "description": "Check if path returns empty results"
+                                            "type": "boolean"
+                                        },
+                                        "isNull": {
+                                            "type": "boolean"
+                                        },
+                                        "notNull": {
+                                            "type": "boolean"
                                         },
                                         "count": {
-                                            "type": "integer",
-                                            "description": "Exact count of results",
-                                            "minimum": 0
+                                            "type": "integer"
                                         },
                                         "minCount": {
-                                            "type": "integer",
-                                            "description": "Minimum count of results",
-                                            "minimum": 0
+                                            "type": "integer"
                                         },
                                         "maxCount": {
-                                            "type": "integer",
-                                            "description": "Maximum count of results",
-                                            "minimum": 0
+                                            "type": "integer"
                                         },
-                                        "equals": {
-                                            "description": "Expected value (exact match)"
+                                        "equals": {},
+                                        "notEquals": {},
+                                        "contains": {},
+                                        "notContains": {},
+                                        "greaterThan": {},
+                                        "greaterThanOrEqual": {},
+                                        "lessThan": {},
+                                        "lessThanOrEqual": {},
+                                        "between": {
+                                            "type": "object",
+                                            "properties": {
+                                                "min": {},
+                                                "max": {}
+                                            }
                                         },
-                                        "contains": {
-                                            "description": "Check if result array contains this value"
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                },
-                                "examples": [
-                                    {
-                                        "$.users[?(@.name == 'John')]": {
-                                            "exists": true,
-                                            "minCount": 1
-                                        }
-                                    },
-                                    {
-                                        "$.users[?(@.age > 18 && @.status == 'active')]": {
-                                            "exists": true,
-                                            "count": 5
-                                        }
-                                    },
-                                    {
-                                        "$.errors": {
-                                            "isEmpty": true
+                                        "matches": {
+                                            "type": "string",
+                                            "description": "Regex pattern"
+                                        },
+                                        "startsWith": {
+                                            "type": "string"
+                                        },
+                                        "endsWith": {
+                                            "type": "string"
+                                        },
+                                        "minLength": {
+                                            "type": "integer"
+                                        },
+                                        "maxLength": {
+                                            "type": "integer"
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": [
+                                                "string",
+                                                "integer",
+                                                "number",
+                                                "boolean",
+                                                "array",
+                                                "object",
+                                                "null"
+                                            ]
+                                        },
+                                        "arrayNotEmpty": {
+                                            "type": "boolean"
+                                        },
+                                        "arraySize": {
+                                            "type": "integer"
+                                        },
+                                        "arrayMinSize": {
+                                            "type": "integer"
+                                        },
+                                        "arrayMaxSize": {
+                                            "type": "integer"
+                                        },
+                                        "arrayContains": {},
+                                        "arrayAll": {
+                                            "type": "object",
+                                            "properties": {
+                                                "operator": {
+                                                    "type": "string"
+                                                },
+                                                "value": {}
+                                            }
+                                        },
+                                        "allOf": {
+                                            "type": "array",
+                                            "description": "All conditions must pass (AND)",
+                                            "items": {
+                                                "$ref": "#/properties/tests/items/properties/expect/properties/jsonPath/additionalProperties"
+                                            }
+                                        },
+                                        "anyOf": {
+                                            "type": "array",
+                                            "description": "At least one condition must pass (OR)",
+                                            "items": {
+                                                "$ref": "#/properties/tests/items/properties/expect/properties/jsonPath/additionalProperties"
+                                            }
                                         }
                                     }
-                                ]
+                                }
+                            },
+                            "performance": {
+                                "type": "object",
+                                "description": "Performance expectations",
+                                "properties": {
+                                    "maxDuration": {
+                                        "type": "integer",
+                                        "description": "Max response time (ms)"
+                                    },
+                                    "minDuration": {
+                                        "type": "integer",
+                                        "description": "Min response time (ms)"
+                                    }
+                                }
+                            },
+                            "jsonSchema": {
+                                "type": "string",
+                                "description": "Path to JSON Schema file"
+                            },
+                            "dateFormats": {
+                                "type": "object",
+                                "description": "Date format validations",
+                                "additionalProperties": {
+                                    "oneOf": [
+                                        {
+                                            "type": "string"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "pattern": {
+                                                    "type": "string"
+                                                },
+                                                "locale": {
+                                                    "type": "string"
+                                                },
+                                                "min": {
+                                                    "type": "string"
+                                                },
+                                                "max": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "headers": {
+                                "type": "array",
+                                "description": "Header assertions",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "equals": {
+                                            "type": "string"
+                                        },
+                                        "contains": {
+                                            "type": "string"
+                                        },
+                                        "notContains": {
+                                            "type": "string"
+                                        },
+                                        "matches": {
+                                            "type": "string"
+                                        },
+                                        "startsWith": {
+                                            "type": "string"
+                                        },
+                                        "endsWith": {
+                                            "type": "string"
+                                        },
+                                        "exists": {
+                                            "type": "boolean"
+                                        },
+                                        "notExists": {
+                                            "type": "boolean"
+                                        },
+                                        "greaterThan": {
+                                            "type": "integer"
+                                        },
+                                        "lessThan": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "name"
+                                    ]
+                                }
                             },
                             "fsExists": {
-                                "type": "string",
-                                "description": "Check if file exists at path"
+                                "type": "string"
                             },
                             "fsSize": {
-                                "type": "string",
-                                "description": "Check file size (format: path:expectedSize)"
+                                "type": "string"
                             },
                             "equals": {
                                 "type": "object",
-                                "description": "Check variable values (key: variable name, value: expected value)",
-                                "additionalProperties": true
+                                "description": "Variable equality checks"
+                            },
+                            "body": {
+                                "type": "object",
+                                "description": "Body assertions (contains jsonPath)",
+                                "properties": {
+                                    "jsonPath": {
+                                        "$ref": "#/properties/tests/items/properties/expect/properties/jsonPath"
+                                    }
+                                }
                             }
-                        },
-                        "additionalProperties": false
+                        }
                     }
                 },
                 "required": [
                     "name"
-                ],
-                "additionalProperties": false
+                ]
             }
         }
     },
     "required": [
         "tests"
-    ],
-    "additionalProperties": false
+    ]
 }

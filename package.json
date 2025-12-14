@@ -3,8 +3,12 @@
   "displayName": "ArgusOmni",
   "publisher": "iSmileSoft",
   "description": "VS Code extension for ArgusOmni",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iSmileSoft/argus-vscode"
+  },
   "engines": {
     "vscode": "^1.104.0"
   },
