@@ -982,10 +982,8 @@
                             },
                             "jsonContains": {
                                 "type": "object",
-                                "description": "JSON contains fields. Response must have these fields (additional fields allowed). Values are booleans.",
-                                "additionalProperties": {
-                                    "type": "boolean"
-                                }
+                                "description": "JSON contains fields. Response must have these fields (additional fields allowed). Can contain any JSON value type (string, number, boolean, object, array).",
+                                "additionalProperties": true
                             },
                             "jsonNotContains": {
                                 "type": "object",
